@@ -1,0 +1,193 @@
+---
+title: "Países do Mundo - Uma Breve Análise"
+subtitle: "Grupo 17 - Linguagem R"
+author: Ana Alice Scalet - 154577 / Davi Mantovani Ricci - 227362
+output: pdf_document
+---
+
+## Introdução
+
+Este relatório visa estudar os países mais populosos do mundo, com o intuito de entender mais sobre as principais fontes de renda, população e outros dados socioeconômicos de cada um deles. Esses dados são muito importantes para analisar o desenvolvimento dos países, por região (no caso, a mais populosa), de acordo com o tipo de economia presente. Ao longo deste trabalho serão mostrados gráficos, análises e dados necessários para serem feitas as diversas conclusões.
+
+## Banco de Dados
+
+O banco de dados dos países do mundo conta com 20 variáveis, sendo 18 numéricas e apenas 2 categóricas (factor). 
+
+As variáveis são, respectivamente:
+
+1. Country: nome do país.
+2. Region: região do país.
+3. Population: número de habitantes do país.
+4. Area (sq. mi.): área do país, por milha quadrada.
+5. Pop. Density (per sq. mi.): população por milha quadrada.
+6. Coastline (coast/area ratio): área do litoral pela área total do país.
+7. Net migration: número de migrantes por 1000 habitantes em 1 ano.
+8. Infant mortality (per 1000 births): mortalidade infantil, por 1000 habitantes.
+9. GDP ($ per capita): PIB.
+10. Literacy (%): taxa de alfabetização.
+11. Phones (per 1000): número de telefones, por 1000 habitantes.
+12. Arable (%): porcentagem de terra arável do país.
+13. Crops (%): porcentagem de terras de cultivo do país.
+14. Other (%): porcentagem de outros tipos de terra.
+15. Climate: clima.
+16. Birthrate: taxa de natalidade do país.
+17. Deathrate: índice de mortalidade do país.
+18. Agriculture: porcentagem do PIB vindo da agricultura.
+19. Industry: porcentagem do PIB vindo da indústria.
+20. Service: porcentagem do PIB vindo de outros serviços.
+
+Para fazer o download do banco, utilizamos um link público do Google Drive, onde está localizado o arquivo _.csv_ de origem.
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE,message=FALSE}
+install.packages('gsheet')
+install.packages("tidyverse")
+library(ggplot2)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(gsheet)
+library(tidyverse)
+```
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+link<-"https://drive.google.com/open?id=1DZsUWKbnd1Y5vQYYlDKX24HfUIzLiZx_t-j6xsdDTtY"
+paises<-gsheet2tbl(link)
+
+```
+
+Um ponto importante é o da caracterização errada das variáveis 3 até 20. O programa R, ao ver números decimais com vírgulas, entende estes como sendo fatores. Para modificar e tornar estas variáveis numéricas, trocamos as vírgulas por pontos. 
+
+Outro ponto nos dados é a coluna de mortalidade infantil. Ao olharmos mais atentamente, vemos que os dados são incorretos em escala. Portanto, dividimos esta coluna por 100 e assim os dados estão prontos para as análises.
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+
+#Função para substituir vírgulas por pontos
+mysub <- function(x) {sub(",",".",x)}
+
+#Aplicando a função e depois trocando as variáveis indicadas por numéricas
+mydata <- (apply(paises, 2, mysub )) 
+paises2 <- data.frame(mydata[,c(1,2)],apply(mydata[,c(3:20)], 2, as.numeric)) 
+
+#Retirando os valores NA
+paises2<-paises2[complete.cases(paises2), ]
+
+paises2$Infant.mortality..per.1000.births.<-(paises2$Infant.mortality..per.1000.births./100)
+
+```
+
+## Análise Descritiva
+
+A fim de conhecer melhor nosso banco de dados, foi feito um _summary_ das variáveis _Country_, _Region_ e _Population_.
+
+Summary de Country e Region:
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+summary(paises2[,c(1,2)])
+```
+
+Summary de Population:
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+summary(paises2$Population)
+```
+
+Vemos que cada país só é mostrado 1 vez no banco, o que indica uma boa qualidade dos dados. Ao olharmos para as regiões, já percebemos uma maior concentração de países da região da África Subsaariana (realmente correto, já que existem 47 países nesta região).
+
+Pelos dados, a população média dos países é em torno de 34 milhões de habitantes, sendo a maior aproximadamente 1 bilhão e a menor de apenas 13.480 habitantes. Isso mostra a alta dispersão dos dados e a grande disparidade de populações entre os países do mundo.
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+paises2$Region<-as.character(paises2$Region)
+paises2$Country<-as.character(paises2$Country)
+
+```
+
+Devido a essa grande diferença do tamanho das populações ao redor do mundo, resolvemos fazer um gráfico para analisar melhor este fato.
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+ggplot(paises2, aes((Population/100000),Region))+
+  geom_line(size=3,col="#9999CC")+
+  theme_minimal()+
+  scale_x_continuous("\nPopulação (por 100.000 habitantes)")+
+  scale_y_discrete("Região\n")
+```
+
+De acordo com o gráfico acima, vemos que a grande diferença no summary da variável Population do nosso banco se deve ao fato da região da Ásia representar 4 vezes mais a população do resto das regiões globais. Por ser a região mais populosa do mundo, iremos estudar apenas os países englobados por esta. 
+
+Para isso, filtramos apenas os dados da região de interesse (Ásia). Armazenamos este banco filtrado em _países3_.
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+paises3<-paises2 %>% filter(Region=="ASIA (EX. NEAR EAST)")
+```
+
+Abaixo, temos um gráfico com os PIB's dos países da região da Ásia.
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+ggplot(paises3, aes(GDP....per.capita.,Country,col=Country))+
+  geom_point(size=3)+
+  scale_x_continuous("\nPIB (por $10.000.000)")+
+  scale_y_discrete("Países\n")+
+  scale_color_discrete("País")+
+  theme_minimal()
+```
+
+Vemos que o maior PIB é o de Hong Kong, e logo em seguida o do Japão, que chegam a quase 300 bilhões de dólares. Ao mesmo tempo, vemos que os outros países, com PIB's menores de 250 bilhões, possuem dados próximos.
+
+Como nosso interesse real é estudar as principais fontes de renda de cada país, da região mais populosa do mundo, precisamos (após filtrar a região do banco de dados total) checar se os dados realmente são adequados para o problema. No nosso caso, as colunas _Agriculture_, _Industry_ e _Service_ precisam somar 1, já que o PIB de um país é composto por estas três variáveis. Para isso, criamos a função _troca_, aplicada nas linhas. Esta função entra com os valores da soma e do banco de dados que gerou a soma. 
+
+Pelo data frame novo, _paises4_ obtemos os próximos gráficos.
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+soma<-apply(paises3[,c(18:20)],1,sum)
+
+troca<-function(x,bancototal){
+  i=c(1:length(x))
+  x<-as.numeric(ifelse (x[i]!=1,NA,x[i]))
+  bancototal<-cbind(bancototal,x)
+  return(bancototal)
+}
+
+paises4<-troca(soma,paises3)
+paises4<-paises4[complete.cases(paises4), ]
+
+```
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+ggplot(paises4, aes(GDP....per.capita./10,Agriculture))+
+ geom_point(col="red")+
+ facet_wrap(~Country,nrow = 4,ncol = 4)+
+ scale_x_continuous("\nPIB (por $100.000.000)")+
+ scale_y_continuous("% do PIB por Agricultura\n")
+
+ggplot(paises4, aes(GDP....per.capita./10,Industry))+
+ geom_point(col="blue")+
+ facet_wrap(~Country,nrow = 4,ncol = 4)+
+ scale_x_continuous("\nPIB (por $100.000.000)")+
+ scale_y_continuous("% do PIB por Indústrias\n")
+
+ggplot(paises4, aes(GDP....per.capita./10,Service))+
+ geom_point(col="green")+
+ facet_wrap(~Country,nrow = 4,ncol = 4)+
+ scale_x_continuous("\nPIB (por $100.000.000)")+
+ scale_y_continuous("% do PIB por Serviços\n")
+
+```
+
+De acordo com os gráficos acima, é observado que para o gráfico de Agricultura, apenas Burma possui mais de 50% do PIB vindo desta prática. Ao olharmos para o gráfico de Indústrias, temos a ideia de que talvez nosso banco de dados esteja incorreto, já que os países com maior PIB possuem menores taxas de Indústrias na participação deste, como é o caso de Taiwan. Para o último gráfico, vemos que a maioria dos países estudados possui alta participação de Serviços no PIB, exceto Brunei e Burma.
+
+Voltando para o banco de dados _paises3_, analisamos mais fatos, já que os fatos sobre as proporções nos PIB's foram inconclusivos. Como curiosidade, estudaremos a alfabetização nestes países.
+
+```{r,eval=TRUE,echo=FALSE,warning=FALSE}
+ggplot(paises3, aes(Literacy..../1000,Country,col=Country))+
+  geom_point(size=3)+
+  scale_x_continuous("\nTaxa de Alfabetização")+
+  scale_y_discrete("Países\n")+
+  scale_color_discrete("País")
+```
+
+De acordo com o gráfico acima, vemos que os países que possuem PIB alto (mostrados pelos gráficos anteriores), também possuem altas taxas de alfabetização, como é o caso do Japão, Hong Kong e Taiwan.
+
+## Considerações Finais
+
+Com este trabalho conseguimos analisar os dados socioeconômicos dos países da região mais populosa do mundo, a região da Ásia. Descobrimos quais os países com maior PIB, taxa de alfabetização e relacionamos o PIB com as contribuições dos setores de Agricultura, Indústria e Serviços. 
+
+Infelizmente nosso banco de dados possui poucas informações com qualidade, ou reais, por diversos motivos (dados socioeconômicos antigos, erros de dados de algumas variáveis e até falta de informação/valores NA). Mesmo assim, conseguimos fazer um bom trabalho de acordo com os objetivos propostos no início do trabalho.
+
+Descobrimos muitas coisas sobre os países da Ásia e seriam necessários outros estudos para analisar os demais países do mundo.
